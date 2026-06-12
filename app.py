@@ -1,3 +1,4 @@
+import json
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -15,24 +16,33 @@ if "historico" not in st.session_state:
     st.session_state.historico = []
 
 # Funções auxiliares para servirem de tools
-def criar_usuario(nome: str, email: str):
+def criar_usuario(nome: str, email: str) -> str:
     """Cria um novo usuário no sistema."""
-    return st.session_state.sistema.criar_usuario(nome, email)
+    # Executa a sua lógica original
+    st.session_state.sistema.criar_usuario(nome, email)
+    st.session_state.sistema.exportar_json() # Garante que salva o usuário no JSON
+    # Retorna uma string clara para o Gemini ler
+    return f"Sucesso: Usuário '{nome}' criado com o e-mail '{email}'."
 
-def criar_tarefa(titulo: str, descricao: str, id_usuario: int, prioridade: str = "Média"):
+def criar_tarefa(titulo: str, descricao: str, id_usuario: int, prioridade: str = "Média") -> str:
     """Cria uma nova tarefa para um usuário específico."""
     st.session_state.sistema.criar_tarefa(titulo, descricao, id_usuario, prioridade)
-    # Salva automaticamente no JSON para persistência imediata
     st.session_state.sistema.exportar_json()
     return f"Tarefa '{titulo}' criada com sucesso."
 
-def listar_tarefas():
+def listar_tarefas() -> str:
     """Lista todas as tarefas cadastradas."""
     tarefas = st.session_state.sistema.tarefas
-    if not tarefas: return "Nenhuma tarefa encontrada."
-    return [{"id": t.id_tarefa, "titulo": t.titulo, "usuario": t.usuario_associado.nome} for t in tarefas]
+    if not tarefas: 
+        return "Nenhuma tarefa encontrada."
+    
+    # Criamos a estrutura de dados simples
+    lista_simples = [{"id": t.id_tarefa, "titulo": t.titulo, "usuario": t.usuario_associado.nome} for t in tarefas]
+    
+    # 💡 Convertemos para String (JSON) para a API do Gemini não quebrar!
+    return json.dumps(lista_simples, ensure_ascii=False)
 
-def deletar_tarefa(id_tarefa: int):
+def deletar_tarefa(id_tarefa: int) -> str:
     """Exclui uma tarefa do sistema através do seu ID."""
     sucesso = st.session_state.sistema.deletar_tarefa(id_tarefa)
     if sucesso:
