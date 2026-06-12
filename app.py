@@ -3,7 +3,7 @@ import streamlit as st
 from google import genai
 from google.genai import types
 from system import SistemaGerenciadorTarefas
-
+#
 # 1. Configuração da página e cliente IA
 st.set_page_config(page_title="KASTAI - Seu assistente no gerenciamento de tarefas!", page_icon="📖✏️")
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
