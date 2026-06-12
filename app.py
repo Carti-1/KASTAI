@@ -58,7 +58,7 @@ config = types.GenerateContentConfig(
 )
 
 if "chat" not in st.session_state:
-    st.session_state.chat = client.chats.create(model="gemini-1.5-flash", config=config)
+    st.session_state.chat = client.chats.create(model="gemini-1.5-flash-002", config=config)
 
 col1, col2 = st.columns([2, 1])
 
