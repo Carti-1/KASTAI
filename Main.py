@@ -3,7 +3,7 @@ import datetime
 
 sistema = SistemaGerenciadorTarefas()
 
-print("KastIA - Seu assistente no gerenciamento de tarefas!")
+print("KASTAI - Seu assistente no gerenciamento de tarefas!")
 
 def exibir_menu():
     print("\n--- Menu ---")

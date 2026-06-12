@@ -1,15 +1,15 @@
 import datetime
 
 class Tarefa:
-    status_pendente = "Pendente" #Variavel para status de tarefa pendente
-    status_em_andamento = "Em Andamento" #Variavel para status de tarefa em andamento
-    status_concluida = "Concluída" #Variavel para status de tarefa concluída
+    status_pendente = "Pendente" 
+    status_em_andamento = "Em Andamento" 
+    status_concluida = "Concluída" 
 
     def __init__(self, id_tarefa, titulo, descricao, usuario_associado, prioridade="Média"):
         self.id_tarefa = id_tarefa
         self.titulo = titulo
         self.descricao = descricao
-        self.status = Tarefa.status_pendente #Toda tarefa começa como pendente
+        self.status = Tarefa.status_pendente #Tarefa é criada como pendente
         self.usuario_associado = usuario_associado
         self.prioridade = prioridade
         self._data_limite = None
