@@ -24,8 +24,9 @@ def criar_usuario(nome: str, email: str) -> str:
     # Retorna uma string clara para o Gemini ler
     return f"Sucesso: Usuário '{nome}' criado com o e-mail '{email}'."
 
-def criar_tarefa(titulo: str, descricao: str, id_usuario: int, prioridade: str = "Média") -> str:
-    """Cria uma nova tarefa para um usuário específico."""
+def criar_tarefa(titulo: str, descricao: str, prioridade: str = "Média") -> str:
+    """Cria uma nova tarefa para o usuário que está logado atualmente no sistema.
+    Use esta função sempre que o usuário pedir para criar, agendar ou anotar uma tarefa."""
     st.session_state.sistema.criar_tarefa(titulo, descricao, id_usuario, prioridade)
     st.session_state.sistema.exportar_json()
     return f"Tarefa '{titulo}' criada com sucesso."
