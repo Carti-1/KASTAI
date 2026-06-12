@@ -1,8 +1,8 @@
 import os
 import json
 import datetime 
-from tarefa import Tarefa
-from usuario import Usuario
+from task import Tarefa
+from user import Usuario
 
 
 class SistemaGerenciadorTarefas:
