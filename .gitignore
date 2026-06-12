@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
+*.pyd
 
 # Ambientes virtuais
 .venv/
@@ -11,3 +14,10 @@ env/
 # Streamlit e Segredos
 .streamlit/secrets.toml
 tasks.json
+
+# Ignorar ficheiros do VS Code
+.vscode/
+
+# Ignorar ficheiros do sistema operacional
+.DS_Store
+Thumbs.db
