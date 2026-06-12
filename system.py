@@ -1,19 +1,20 @@
 import os
 import json
 import datetime 
-from task import Tarefa
-from user import Usuario
+from tarefa import Tarefa
+from usuario import Usuario
 
 
 class SistemaGerenciadorTarefas:
 
     def __init__(self):
-        self.usuarios = [] #Lista de usuário
+        self.usuarios = [] #Lista de usuários
         self.tarefas = [] #Lista de Tarefas
         self.carregar_dados()
 
     def criar_usuario(self, nome, email):
-        novo_id = len(self.usuarios) + 1 #Id único local
+        # Garante ID único mesmo após deleções
+        novo_id = max([u.id_usuario for u in self.usuarios], default=0) + 1
         usuario = Usuario(novo_id, nome, email)
         self.usuarios.append(usuario)
         print(f"Usuário {nome} criado com sucesso!")
@@ -29,11 +30,18 @@ class SistemaGerenciadorTarefas:
             else:
                 self.usuarios.remove(usuario)
 
+    def deletar_tarefa(self, id_tarefa):
+        tarefa = self.buscar_tarefa_por_id(id_tarefa)
+        if tarefa:
+            self.tarefas.remove(tarefa)
+            print(f"Tarefa {id_tarefa} removida.")
+            return True
+        return False
 
     def criar_tarefa(self, titulo, descricao, id_usuario, prioridade="Média"):
         usuario_associado = self.buscar_usuario_por_id(id_usuario)
         if usuario_associado:
-            novo_id = len(self.tarefas) + 1 #Id único local
+            novo_id = max([t.id_tarefa for t in self.tarefas], default=0) + 1
             tarefa = Tarefa(novo_id, titulo, descricao, usuario_associado, prioridade)
             self.tarefas.append(tarefa)
             print(f"Tarefa '{titulo}', criada com sucesso!")
@@ -78,6 +86,15 @@ class SistemaGerenciadorTarefas:
 
     def exportar_json(self, nome_arquivo="tasks.json"):
         tarefas_data = []
+        usuarios_data = [
+            {
+                "id_usuario": u.id_usuario,
+                "nome": u.nome,
+                "email": u.email
+            }
+            for u in self.usuarios
+        ]
+
         for tarefa in self.tarefas:
             tarefa_info = {
                 "id_tarefa": tarefa.id_tarefa,
@@ -95,8 +112,13 @@ class SistemaGerenciadorTarefas:
                 tarefa_info["data_limite"] = tarefa._data_limite.isoformat() # Converte para string ISO 8601
             tarefas_data.append(tarefa_info)
 
+        dados_completos = {
+            "usuarios": usuarios_data,
+            "tarefas": tarefas_data
+        }
+
         with open(nome_arquivo, "w") as file:
-            json.dump(tarefas_data, file, indent=4)
+            json.dump(dados_completos, file, indent=4)
         print(f"Tarefas salvas.")
 
     def verificar_lembretes_tarefas(self, dias_antecedencia=3):
@@ -117,17 +139,21 @@ class SistemaGerenciadorTarefas:
             return
 
         with open(nome_arquivo, "r") as file:
-            dados = json.load(file)
-            for item in dados:
-                u = item["usuario"]
-                usuario_obj = self.buscar_usuario_por_id(u["id_usuario"])
-                if not usuario_obj:
-                    usuario_obj = Usuario(u["id_usuario"], u["nome"], u["email"])
-                    self.usuarios.append(usuario_obj)
-                
-                tarefa = Tarefa(item["id_tarefa"], item["titulo"], item["descricao"], usuario_obj, item.get("prioridade", "Média"))
-                tarefa.status = item["status"]
-                if "data_limite" in item:
-                    tarefa.definir_data_limite(datetime.date.fromisoformat(item["data_limite"]))
-                self.tarefas.append(tarefa)
+            conteudo = json.load(file)
+            
+            # Carregar Usuários Primeiro
+            for u in conteudo.get("usuarios", []):
+                if not self.buscar_usuario_por_id(u["id_usuario"]):
+                    self.usuarios.append(Usuario(u["id_usuario"], u["nome"], u["email"]))
+
+            # Carregar Tarefas
+            for item in conteudo.get("tarefas", []):
+                usuario_obj = self.buscar_usuario_por_id(item["usuario"]["id_usuario"])
+                if usuario_obj:
+                    tarefa = Tarefa(item["id_tarefa"], item["titulo"], item["descricao"], usuario_obj, item.get("prioridade", "Média"))
+                    tarefa.status = item["status"]
+                    if "data_limite" in item:
+                        tarefa.definir_data_limite(datetime.date.fromisoformat(item["data_limite"]))
+                    self.tarefas.append(tarefa)
+
         print("Dados carregados com sucesso!")
