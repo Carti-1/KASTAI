@@ -54,7 +54,7 @@ def deletar_tarefa(id_tarefa: int) -> str:
 # 2. Configura a IA com as ferramentas vinculadas ao estado do app
 config = types.GenerateContentConfig(
     system_instruction="Você é um assistente de produtividade. Use as ferramentas para gerenciar usuários e tarefas.",
-    tools=[criar_usuario, criar_task, listar_tarefas, deletar_tarefa], 
+    tools=[criar_usuario, criar_tarefa, listar_tarefas, deletar_tarefa], 
     temperature=0.5
 )
 
