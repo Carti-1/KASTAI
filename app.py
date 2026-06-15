@@ -18,15 +18,16 @@ if "historico" not in st.session_state:
 # Funções auxiliares para servirem de tools
 def criar_usuario(nome: str, email: str) -> str:
     """Cria um novo usuário no sistema."""
-    # Executa a sua lógica original
     st.session_state.sistema.criar_usuario(nome, email)
-    st.session_state.sistema.exportar_json() # Garante que salva o usuário no JSON
+    st.session_state.sistema.exportar_json()
     # Retorna uma string clara para o Gemini ler
     return f"Sucesso: Usuário '{nome}' criado com o e-mail '{email}'."
 
 def criar_task(titulo: str, descricao: str, prioridade: str = "Média") -> str:
     """Cria uma nova tarefa para o usuário que está logado atualmente no sistema.
     Use esta função sempre que o usuário pedir para criar, agendar ou anotar uma tarefa."""
+
+    id_usuario = id_usuario_atual()
     st.session_state.sistema.criar_tarefa(titulo, descricao, id_usuario, prioridade)
     st.session_state.sistema.exportar_json()
     return f"Tarefa '{titulo}' criada com sucesso."
@@ -37,10 +38,9 @@ def listar_tarefas() -> str:
     if not tarefas: 
         return "Nenhuma tarefa encontrada."
     
-    # Criamos a estrutura de dados simples
     lista_simples = [{"id": t.id_tarefa, "titulo": t.titulo, "usuario": t.usuario_associado.nome} for t in tarefas]
     
-    # 💡 Convertemos para String (JSON) para a API do Gemini não quebrar!
+    # Conveção para String (JSON) para a API do Gemini não quebrar!
     return json.dumps(lista_simples, ensure_ascii=False)
 
 def deletar_tarefa(id_tarefa: int) -> str:
@@ -54,7 +54,7 @@ def deletar_tarefa(id_tarefa: int) -> str:
 # 2. Configura a IA com as ferramentas vinculadas ao estado do app
 config = types.GenerateContentConfig(
     system_instruction="Você é um assistente de produtividade. Use as ferramentas para gerenciar usuários e tarefas.",
-    tools=[criar_usuario, criar_tarefa, listar_tarefas, deletar_tarefa], 
+    tools=[criar_usuario, criar_task, listar_tarefas, deletar_tarefa], 
     temperature=0.5
 )
 
@@ -77,7 +77,7 @@ with col1:
             st.write(prompt)
         st.session_state.historico.append({"role": "user", "content": prompt})
         
-        # Envia para a IA, que decide se vai chamar o seu 'system.py'
+        # Envia para a IA, que decide se vai chamar o 'system.py'
         resposta = st.session_state.chat.send_message(prompt)
         
         with st.chat_message("assistant"):
