@@ -25,8 +25,8 @@ with st.sidebar:
     
     if not usuarios_cadastrados:
         st.warning("Nenhum usuário cadastrado no sistema.")
-        nome_temp = st.text_input("Criar usuário inicial (Nome):", "João Pedro")
-        email_temp = st.text_input("E-mail:", "joao@email.com")
+        nome_temp = st.text_input("Criar usuário inicial (Nome):", "Digite seu nome")
+        email_temp = st.text_input("E-mail:", "Digite seu e-mail")
         if st.button("Cadastrar Usuário Inicial"):
             st.session_state.sistema.criar_usuario(nome_temp, email_temp)
             st.session_state.sistema.exportar_json()
@@ -122,32 +122,36 @@ with col1:
 
 with col2:
     st.subheader("📋 Suas Tarefas Atuais")
-
+    
     st.session_state.sistema.carregar_dados()
-
+    
     id_usuario = st.session_state.get("id_usuario_atual")
     tarefas_atuais = st.session_state.sistema.tarefas
-
+    
     tarefas_do_usuario = [t for t in tarefas_atuais if t.usuario_associado.id_usuario == id_usuario] if id_usuario else []
     
-    tarefas_atuais = st.session_state.sistema.tarefas
     if not tarefas_do_usuario:
-        st.info("Nenhuma tarefa criada ainda. Peça para que eu crie uma!")
+        st.info("Nenhuma tarefa criada ainda para este usuário. Peça para a IA criar uma!")
     else:
-        # O loop lerá a lista atualizada após o st.rerun()
         for t in tarefas_do_usuario:
             cols_tarefa = st.columns([0.85, 0.15])
             with cols_tarefa[0]:
-                status_check = st.checkbox(f"**{t.titulo}**", key=f"t_{t.id_tarefa}", value=(t.status == "Concluída"))
+                # 💡 SOLUÇÃO AQUI: Combinamos o ID do usuário com o ID da tarefa para gerar uma chave única
+                key_checkbox = f"t_{id_usuario}_{t.id_tarefa}"
+                status_check = st.checkbox(f"**{t.titulo}**", key=key_checkbox, value=(t.status == "Concluída"))
+                
                 novo_status = "Concluída" if status_check else "Pendente"
-                if novo_status!= t.status:
+                if novo_status != t.status:
                     t.mudar_status(novo_status)
                     st.session_state.sistema.exportar_json()
             with cols_tarefa[1]:
-                if st.button("🗑️", key=f"del_{t.id_tarefa}"):
+                # 💡 Aplicamos a mesma lógica de chave única para o botão de deletar
+                key_btn_del = f"del_{id_usuario}_{t.id_tarefa}"
+                if st.button("🗑️", key=key_btn_del):
                     st.session_state.sistema.deletar_tarefa(t.id_tarefa)
                     st.session_state.sistema.exportar_json()
                     st.rerun()
         
-        if st.button("💾 Salvar Alterações"):
+        if st.button("💾 Salvar Alterações", key=f"save_btn_{id_usuario}"):
             st.session_state.sistema.exportar_json()
+            st.success("Alterações salvas com sucesso!")
