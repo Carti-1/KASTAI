@@ -15,6 +15,31 @@ if "sistema" not in st.session_state:
 if "historico" not in st.session_state:
     st.session_state.historico = []
 
+
+with st.sidebar:
+    st.title("👤 Usuário Ativo")
+    
+    # Força a recarga dos dados para garantir que temos os usuários mais recentes
+    st.session_state.sistema.carregar_dados()
+    usuarios_cadastrados = st.session_state.sistema.usuarios
+    
+    if not usuarios_cadastrados:
+        st.warning("Nenhum usuário cadastrado no sistema.")
+        nome_temp = st.text_input("Criar usuário inicial (Nome):", "João Pedro")
+        email_temp = st.text_input("E-mail:", "joao@email.com")
+        if st.button("Cadastrar Usuário Inicial"):
+            st.session_state.sistema.criar_usuario(nome_temp, email_temp)
+            st.session_state.sistema.exportar_json()
+            st.rerun()
+    else:
+        # Mapeia a string de exibição para o ID real do usuário
+        opcoes = {f"{u.nome} (ID: {u.id_usuario})": u.id_usuario for u in usuarios_cadastrados}
+        escolha = st.selectbox("Selecione quem está usando o sistema:", list(opcoes.keys()))
+        
+        # Guarda o ID selecionado no session_state para persistência segura
+        st.session_state.id_usuario_atual = opcoes[escolha]
+        st.success(f"Conectado como ID: {st.session_state.id_usuario_atual}")
+
 # Funções auxiliares para servirem de tools
 def criar_usuario(nome: str, email: str) -> str:
     """Cria um novo usuário no sistema."""
@@ -28,20 +53,25 @@ def criar_task(titulo: str, descricao: str, prioridade: str = "Média") -> str:
     Use esta função sempre que o usuário pedir para criar, agendar ou anotar uma tarefa."""
 
     id_usuario = st.session_state.get("id_usuario_atual")
-    
     st.session_state.sistema.criar_tarefa(titulo, descricao, id_usuario, prioridade)
     st.session_state.sistema.exportar_json()
     return f"Tarefa '{titulo}' criada com sucesso."
 
 def listar_tarefas() -> str:
     """Lista todas as tarefas cadastradas."""
+
+    st.session_state.sistema.carregar_dados()
+    
+    id_usuario = st.session_state.get("id_usuario_atual")
+    if id_usuario is None:
+        return "Erro: Nenhum usuário ativo selecionado."
+
     tarefas = st.session_state.sistema.tarefas
-    if not tarefas: 
+    tarefas_filtradas = [t for t in tarefas if t.usuario_associado.id_usuario == id_usuario]
+    if not tarefas_filtradas: 
         return "Nenhuma tarefa encontrada."
-    
+            
     lista_simples = [{"id": t.id_tarefa, "titulo": t.titulo, "usuario": t.usuario_associado.nome} for t in tarefas]
-    
-    # Conveção para String (JSON) para a API do Gemini não quebrar!
     return json.dumps(lista_simples, ensure_ascii=False)
 
 def deletar_tarefa(id_tarefa: int) -> str:
@@ -54,9 +84,11 @@ def deletar_tarefa(id_tarefa: int) -> str:
 
 # 2. Configura a IA com as ferramentas vinculadas ao estado do app
 config = types.GenerateContentConfig(
-    system_instruction="Você é um assistente de produtividade. Use as ferramentas para gerenciar usuários e tarefas.",
+    system_instruction=("Você é um assistente de produtividade pessoal. Use as ferramentas para gerenciar usuários e tarefas. "
+        "Você NÃO precisa e NÃO deve pedir o ID do usuário para criar ou listar tarefas; o sistema já gerencia o usuário ativo "
+        "através do estado da sessão. Sempre execute os comandos tendo em vista o usuário atual."),
     tools=[criar_usuario, criar_task, listar_tarefas, deletar_tarefa], 
-    temperature=0.5
+    temperature=0.4
 )
 
 if "chat" not in st.session_state:
@@ -84,20 +116,33 @@ with col1:
         with st.chat_message("assistant"):
             st.write(resposta.text)
         st.session_state.historico.append({"role": "assistant", "content": resposta.text})
-
+        # Após a resposta, recarrega os dados para garantir que a interface de tarefas esteja atualizada
+        st.session_state.sistema.carregar_dados()
         st.rerun()
 
 with col2:
     st.subheader("📋 Suas Tarefas Atuais")
+
+    st.session_state.sistema.carregar_dados()
+
+    id_usuario = st.session_state.get("id_usuario_atual")
     tarefas_atuais = st.session_state.sistema.tarefas
-    if not tarefas_atuais:
-        st.info("Nenhuma tarefa criada ainda. Peça para a IA criar uma!")
+
+    tarefas_do_usuario = [t for t in tarefas_atuais if t.usuario_associado.id_usuario == id_usuario] if id_usuario else []
+    
+    tarefas_atuais = st.session_state.sistema.tarefas
+    if not tarefas_do_usuario:
+        st.info("Nenhuma tarefa criada ainda. Peça para que eu crie uma!")
     else:
         # O loop lerá a lista atualizada após o st.rerun()
-        for t in tarefas_atuais:
+        for t in tarefas_do_usuario:
             cols_tarefa = st.columns([0.85, 0.15])
             with cols_tarefa[0]:
-                st.checkbox(f"**{t.titulo}**", key=f"t_{t.id_tarefa}", value=(t.status == "Concluída"))
+                status_check = st.checkbox(f"**{t.titulo}**", key=f"t_{t.id_tarefa}", value=(t.status == "Concluída"))
+                novo_status = "Concluída" if status_check else "Pendente"
+                if novo_status!= t.status:
+                    t.mudar_status(novo_status)
+                    st.session_state.sistema.exportar_json()
             with cols_tarefa[1]:
                 if st.button("🗑️", key=f"del_{t.id_tarefa}"):
                     st.session_state.sistema.deletar_tarefa(t.id_tarefa)
