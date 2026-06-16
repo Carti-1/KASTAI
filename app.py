@@ -27,7 +27,8 @@ def criar_task(titulo: str, descricao: str, prioridade: str = "Média") -> str:
     """Cria uma nova tarefa para o usuário que está logado atualmente no sistema.
     Use esta função sempre que o usuário pedir para criar, agendar ou anotar uma tarefa."""
 
-    id_usuario = id_usuario_atual()
+    id_usuario = st.session_state.get("id_usuario_atual")
+    
     st.session_state.sistema.criar_tarefa(titulo, descricao, id_usuario, prioridade)
     st.session_state.sistema.exportar_json()
     return f"Tarefa '{titulo}' criada com sucesso."
